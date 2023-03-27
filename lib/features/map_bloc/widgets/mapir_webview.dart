@@ -1,30 +1,35 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:webview_flutter/webview_flutter.dart';
+
 import 'package:mapir_webview/features/debouncer/debouncer.dart';
 import 'package:mapir_webview/features/map_bloc/bloc/map_bloc.dart';
 import 'package:mapir_webview/features/map_bloc/event_sink/event_sink.dart';
-import 'package:webview_flutter/webview_flutter.dart';
 
 class MapIrWebView extends StatelessWidget {
   const MapIrWebView({
-    super.key,
+    Key? key,
     required this.mapIrToken,
     this.initialLocation,
     this.initialZoomLevel = 6,
     this.loggerName = 'MapIRWebView',
-    this.stateListener,
     required this.controller,
-    this.placeholder,
     this.baseMapUri,
-  });
+    this.styles,
+    this.scripts,
+    this.stateListener,
+    this.placeholder,
+  }) : super(key: key);
   final String mapIrToken;
   final LatLng? initialLocation;
-  final int initialZoomLevel;
+  final double initialZoomLevel;
   final String loggerName;
   final MapEventDriver controller;
   final Uri? baseMapUri;
 
+  final List<String>? styles;
+  final List<String>? scripts;
   final void Function(BuildContext context, MapState state)? stateListener;
   final Widget Function(BuildContext context)? placeholder;
   @override
@@ -37,6 +42,8 @@ class MapIrWebView extends StatelessWidget {
           initialPoint: initialLocation ?? LatLng(32, 53),
           baseMapUri: baseMapUri ?? Uri.parse('https://map.ir/'),
           loggerName: loggerName,
+          scripts: scripts,
+          styles: styles,
         );
         bloc.add(RequestMapControllerEvent());
         controller.map = bloc;

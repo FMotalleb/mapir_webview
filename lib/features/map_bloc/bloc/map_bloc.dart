@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mapir_webview/features/debouncer/debouncer.dart';
 import 'package:mapir_webview/features/map_bloc/data/model/latlng_boundary.dart';
@@ -13,9 +14,6 @@ part 'map_event.dart';
 part 'map_state.dart';
 
 class MapBloc extends Bloc<MapEvent, MapState> {
-  final String mapIrToken;
-  final LatLng initialPoint;
-  final int initialZoom;
   WebViewController? _controller;
   final Logger _logger;
   Logger _createLoggerFor(MapEvent event) {
@@ -29,9 +27,11 @@ class MapBloc extends Bloc<MapEvent, MapState> {
   static MapBloc of(BuildContext context) => context.read<MapBloc>();
 
   MapBloc({
-    required this.mapIrToken,
-    required this.initialZoom,
-    required this.initialPoint,
+    required String mapIrToken,
+    required double initialZoom,
+    required LatLng initialPoint,
+    List<String>? styles,
+    List<String>? scripts,
     required Uri baseMapUri,
     String loggerName = 'Global.MapBloc',
   })  : _logger = Logger(loggerName),
@@ -83,7 +83,13 @@ Page resource error:
       await _createChannels(controller);
 
       await controller.loadHtmlString(
-        _pageCode,
+        _pageCode(
+          initialPoint: initialPoint,
+          initialZoom: initialZoom,
+          mapIrToken: mapIrToken,
+          style: await _cssPart(styles),
+          js: await _jsPart(scripts),
+        ),
         baseUrl: baseMapUri.toString(),
       );
       logger.fine('loading html page at `${DateTime.now()}`');
@@ -219,14 +225,21 @@ To prevent further errors, please ensure that the data type being passed conform
     );
   }
 
-  String get _pageCode => '''<!DOCTYPE html>
+  String _pageCode({
+    required LatLng initialPoint,
+    required double initialZoom,
+    required String mapIrToken,
+    required String style,
+    required String js,
+  }) =>
+      '''<!DOCTYPE html>
 <html>
 
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" href="https://cdn.map.ir/web-sdk/1.4.2/css/mapp.min.css">
-    <link rel="stylesheet" href="https://cdn.map.ir/web-sdk/1.4.2/css/fa/style.css">
+    $style
+
     <style>
         @charset "utf-8";
 
@@ -255,18 +268,66 @@ To prevent further errors, please ensure that the data type being passed conform
 
 <body>
     <div id="app"></div>
-    <script type="text/javascript" src="https://cdn.map.ir/web-sdk/1.4.2/js/jquery-3.2.1.min.js"></script>
-    <script type="text/javascript" src="https://cdn.map.ir/web-sdk/1.4.2/js/mapp.env.js"></script>
-    <script type="text/javascript" src="https://cdn.map.ir/web-sdk/1.4.2/js/mapp.min.js"></script>
+    $js
+
     <script>
-      $_initializerScript
+      ${_initializerScript(
+        initialPoint: initialPoint,
+        initialZoom: initialZoom,
+        mapIrToken: mapIrToken,
+      )}
     </script>
 </body>
 
 </html>
 ''';
 
-  String get _initializerScript => '''\$(document).ready(
+  Future<String> _cssPart(List<String>? assetSource) async {
+    if (assetSource == null) {
+      return '''<link rel="stylesheet" href="https://cdn.map.ir/web-sdk/1.4.2/css/mapp.min.css">
+    <link rel="stylesheet" href="https://cdn.map.ir/web-sdk/1.4.2/css/fa/style.css">''';
+    }
+    final js = StringBuffer();
+    for (final key in assetSource) {
+      final asset = await _readAsset(key);
+      js.writeAll([
+        '<style>',
+        asset,
+        '</style>',
+      ]);
+    }
+    return js.toString();
+  }
+
+  Future<String> _jsPart(List<String>? assetSource) async {
+    if (assetSource == null) {
+      return '''<script type="text/javascript" src="https://cdn.map.ir/web-sdk/1.4.2/js/jquery-3.2.1.min.js"></script>
+    <script type="text/javascript" src="https://cdn.map.ir/web-sdk/1.4.2/js/mapp.env.js"></script>
+    <script type="text/javascript" src="https://cdn.map.ir/web-sdk/1.4.2/js/mapp.min.js"></script>
+''';
+    }
+    final js = StringBuffer();
+    for (final key in assetSource) {
+      final asset = await _readAsset(key);
+      js.writeAll([
+        '<script>',
+        asset,
+        '</script>',
+      ]);
+    }
+    return js.toString();
+  }
+
+  Future<String> _readAsset(String assetKey) {
+    return rootBundle.loadString(assetKey, cache: false);
+  }
+
+  String _initializerScript({
+    required LatLng initialPoint,
+    required double initialZoom,
+    required String mapIrToken,
+  }) =>
+      '''\$(document).ready(
   function () {
       window.map = new Mapp(
           {
