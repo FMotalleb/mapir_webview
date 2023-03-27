@@ -16,12 +16,15 @@ class MapIrWebView extends StatelessWidget {
     this.stateListener,
     required this.controller,
     this.placeholder,
+    this.baseMapUri,
   });
   final String mapIrToken;
   final LatLng? initialLocation;
   final int initialZoomLevel;
   final String loggerName;
   final MapEventDriver controller;
+  final Uri? baseMapUri;
+
   final void Function(BuildContext context, MapState state)? stateListener;
   final Widget Function(BuildContext context)? placeholder;
   @override
@@ -31,7 +34,8 @@ class MapIrWebView extends StatelessWidget {
         final bloc = MapBloc(
           mapIrToken: mapIrToken,
           initialZoom: initialZoomLevel,
-          initialPoint: initialLocation,
+          initialPoint: initialLocation ?? LatLng(53, 32),
+          baseMapUri: baseMapUri ?? Uri.parse('https://map.ir/'),
           loggerName: loggerName,
         );
         bloc.add(RequestMapControllerEvent());

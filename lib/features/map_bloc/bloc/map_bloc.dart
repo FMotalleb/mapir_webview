@@ -26,11 +26,11 @@ class MapBloc extends Bloc<MapEvent, MapState> {
 
   MapBloc({
     required this.mapIrToken,
-    this.initialZoom = 6,
-    LatLng? initialPoint,
+    required this.initialZoom,
+    required this.initialPoint,
+    required Uri baseMapUri,
     String loggerName = 'Global.MapBloc',
-  })  : initialPoint = initialPoint ?? LatLng(32, 52),
-        _logger = Logger(loggerName),
+  })  : _logger = Logger(loggerName),
         super(MapBlocInitial()) {
     on<RequestMapControllerEvent>((event, emit) async {
       final logger = createLoggerFor(event);
@@ -97,7 +97,10 @@ Page resource error:
           );
         },
       );
-      await controller.loadHtmlString(_pageCode, baseUrl: 'https://cdn.map.ir/');
+      await controller.loadHtmlString(
+        _pageCode,
+        baseUrl: baseMapUri.toString(),
+      );
       logger.fine('loading html page at `${DateTime.now()}`');
       // Future.delayed(const Duration(milliseconds: 300));
       // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
