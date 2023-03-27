@@ -63,9 +63,13 @@ class CreateMarkerOnMapEvent extends IInjectableJsEvent {
   final Size iconSize;
   final Offset iconAnchor;
   final bool draggable;
+  final bool moveToMarker;
+  //TODO rotation?
+  //TODO popup control
   CreateMarkerOnMapEvent({
     required this.name,
     required this.iconUrl,
+    this.moveToMarker = false,
     required this.location,
     this.iconSize = const Size(20, 20),
     Offset? iconAnchor,
@@ -75,22 +79,24 @@ class CreateMarkerOnMapEvent extends IInjectableJsEvent {
   @override
   String get rawJs => '''
 var icon = {
-  iconUrl: '$iconUrl',
-  iconSize:     [${iconSize.width}, ${iconSize.height}], 
-  iconAnchor:   [${iconAnchor.dx}, ${iconAnchor.dy}], 
+  iconUrl:    '$iconUrl',
+  iconSize:   [${iconSize.width}, ${iconSize.height}], 
+  iconAnchor: [${iconAnchor.dx}, ${iconAnchor.dy}], 
 };
+
 window.map.addMarker({
   name: '$name',
   latlng: {
       lat: ${location.latitude},
       lng: ${location.longitude},
   },
+
   icon: icon,
   popup: false,
   clickable:false,
-  pan: true,
+  pan: $moveToMarker,
   draggable: $draggable,
-  history: false,
+  history: true,
 });''';
   @override
   List<Object?> get props => [
@@ -142,4 +148,17 @@ class ZoomInEvent extends IInjectableJsEvent {
 
   @override
   String get rawJs => 'window.map.map.zoomIn()';
+}
+
+class ZoomOutEvent extends IInjectableJsEvent {
+  final int id;
+  ZoomOutEvent(
+    this.id,
+  );
+
+  @override
+  List<Object?> get props => [id];
+
+  @override
+  String get rawJs => 'window.map.map.zoomOut()';
 }
