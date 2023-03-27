@@ -61,39 +61,14 @@ class MapTapState extends RawEventState {
   List<Object?> get props => [super.props, point];
 }
 
-class MapDoubleTapState extends RawEventState {
-  final LatLng point;
-  const MapDoubleTapState({
-    required super.event,
-    required this.point,
-  });
-  factory MapDoubleTapState.fromMap(Map<String, dynamic> map) {
-    final data = map['params'];
-    if (data is! Map<String, dynamic>) {
-      throw Exception('given map does not contain Map<String,dynamic>(`params`)');
-    }
-    final lat = data['lat'];
-    final lng = data['lng'];
-    if (lat is! num || lng is! num) {
-      throw Exception('lat or long values are not in correct format they must be of type num');
-    }
-    final point = LatLng(lat.toDouble(), lng.toDouble());
-    return MapDoubleTapState(
-      event: map,
-      point: point,
-    );
-  }
-  @override
-  List<Object?> get props => [super.props, point];
-}
-
-class MapStateChanged extends MapState {
+class MapStateChanged extends RawEventState {
   final LatLngBoundary boundary;
   final double zoomLevel;
-  const MapStateChanged(
-    this.boundary,
-    this.zoomLevel,
-  );
+  const MapStateChanged({
+    required super.event,
+    required this.boundary,
+    required this.zoomLevel,
+  });
   LatLng get center => boundary.center;
   factory MapStateChanged.fromMap(Map<String, dynamic> map) {
     final zoom = map['zoom'];
@@ -110,8 +85,9 @@ class MapStateChanged extends MapState {
     final southWest = LatLng(southWestMap['lat'].toDouble(), southWestMap['lng'].toDouble());
     final northEast = LatLng(northEastMap['lat'].toDouble(), northEastMap['lng'].toDouble());
     return MapStateChanged(
-      LatLngBoundary(northEast: northEast, southWest: southWest),
-      zoom.toDouble(),
+      event: map,
+      boundary: LatLngBoundary(northEast: northEast, southWest: southWest),
+      zoomLevel: zoom.toDouble(),
     );
   }
   @override
