@@ -34,7 +34,7 @@ class MapIrWebView extends StatelessWidget {
         final bloc = MapBloc(
           mapIrToken: mapIrToken,
           initialZoom: initialZoomLevel,
-          initialPoint: initialLocation ?? LatLng(53, 32),
+          initialPoint: initialLocation ?? LatLng(32, 53),
           baseMapUri: baseMapUri ?? Uri.parse('https://map.ir/'),
           loggerName: loggerName,
         );
