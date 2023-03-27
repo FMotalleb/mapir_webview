@@ -18,8 +18,12 @@ class MapBloc extends Bloc<MapEvent, MapState> {
   final int initialZoom;
   WebViewController? _controller;
   final Logger _logger;
-  Logger createLoggerFor(MapEvent event) {
+  Logger _createLoggerFor(MapEvent event) {
     return Logger('${_logger.fullName}.${event.runtimeType}');
+  }
+
+  Logger _extendLogger(Logger logger, String name) {
+    return Logger('${logger.fullName}.$name');
   }
 
   static MapBloc of(BuildContext context) => context.read<MapBloc>();
@@ -33,7 +37,7 @@ class MapBloc extends Bloc<MapEvent, MapState> {
   })  : _logger = Logger(loggerName),
         super(MapBlocInitial()) {
     on<RequestMapControllerEvent>((event, emit) async {
-      final logger = createLoggerFor(event);
+      final logger = _createLoggerFor(event);
       if (_controller != null) {
         logger.info('found previous controller reusing it');
         return emit(
@@ -59,6 +63,7 @@ class MapBloc extends Bloc<MapEvent, MapState> {
       await controller.setNavigationDelegate(
         NavigationDelegate(
           onWebResourceError: (WebResourceError error) {
+            final logger = _extendLogger(_logger, 'NavigationDelegate.onWebResourceError');
             logger.shout(
               '''
 Page resource error:
@@ -69,45 +74,19 @@ Page resource error:
             );
           },
           onNavigationRequest: (NavigationRequest request) {
+            final logger = _extendLogger(_logger, 'NavigationDelegate.onNavigationRequest');
             logger.warning('preventing navigation to ${request.url}');
             return NavigationDecision.prevent;
           },
         ),
       );
-      await controller.addJavaScriptChannel(
-        'TapListener',
-        onMessageReceived: (JavaScriptMessage message) {
-          logger.info('message received from channel:\n${message.message}');
-          final data = jsonDecode(message.message) as Map<String, dynamic>;
-          add(_InternalEmitter(MapTapState.fromMap(data)));
-        },
-      );
-      await controller.addJavaScriptChannel(
-        'MapStateListener',
-        onMessageReceived: (JavaScriptMessage message) {
-          Debounce.debounce(
-            'MapStateListener',
-            const Duration(milliseconds: 350),
-            () {
-              logger.info('message received from channel:\n${message.message}');
-              final data = jsonDecode(message.message) as Map<String, dynamic>;
-              logger.info('state updated to $data');
-              add(_InternalEmitter(MapStateChanged.fromMap(data)));
-            },
-          );
-        },
-      );
+      await _createChannels(controller);
+
       await controller.loadHtmlString(
         _pageCode,
         baseUrl: baseMapUri.toString(),
       );
       logger.fine('loading html page at `${DateTime.now()}`');
-      // Future.delayed(const Duration(milliseconds: 300));
-      // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
-      //   await Future.delayed(const Duration(seconds: 1));
-      //   logger.fine('injecting initializer script at `${DateTime.now()}`');
-      //   await controller.runJavaScriptReturningResult(_initializerScript);
-      // });
       final platform = controller.platform;
       if (platform is AndroidWebViewController) {
         AndroidWebViewController.enableDebugging(true);
@@ -121,7 +100,7 @@ Page resource error:
     });
     on<IInjectableJsEvent>(
       (event, emit) async {
-        final logger = createLoggerFor(event);
+        final logger = _createLoggerFor(event);
 
         if (_controller == null) {
           logger.shout('controller is not initialized yet');
@@ -137,6 +116,109 @@ Page resource error:
       (event, emit) => emit(event.state),
     );
   }
+
+  Future<void> _createChannels(WebViewController controller) async {
+    final mapStateListenerLogger = _extendLogger(
+      _logger,
+      'Channel.MapStateListener',
+    );
+    final tapListenerLogger = _extendLogger(
+      _logger,
+      'Channel.TapListener',
+    );
+    final publicLogger = _extendLogger(
+      _logger,
+      'Channel.Public',
+    );
+
+    await controller.addJavaScriptChannel(
+      'TapListener',
+      onMessageReceived: (JavaScriptMessage message) {
+        tapListenerLogger.info('Received:\n${message.message}');
+        try {
+          final data = jsonDecode(message.message) as Map<String, dynamic>;
+          add(
+            _InternalEmitter(
+              MapTapState.fromMap(data),
+            ),
+          );
+        } catch (e, st) {
+          tapListenerLogger.shout(
+            '''
+Error in Parsing Message as JSON Object in TapListener: Channel Reservation by Package
+The system has encountered an error while attempting to parse the message in TapListener as a JSON object. To prevent further errors, it is advised that you refrain from sending any messages to this channel. This channel has been reserved by the package itself and should not be used for external communication.
+
+If you require a channel for passing messages, we recommend using the PublicListener instead. Please note that when passing messages, it is important to ensure that they conform to the expected format and data type requirements.
+
+In the event that you did not send any message to this channel and are still experiencing issues, we encourage you to open an issue with our support team. Our team will work diligently to resolve the issue and ensure that your system is functioning properly.
+''',
+            e,
+            st,
+          );
+        }
+      },
+    );
+    await controller.addJavaScriptChannel(
+      'MapStateListener',
+      onMessageReceived: (JavaScriptMessage message) {
+        Debounce.debounce(
+          'MapStateListener',
+          const Duration(milliseconds: 350),
+          () {
+            try {
+              mapStateListenerLogger.info('Received:\n${message.message}');
+              final data = jsonDecode(message.message) as Map<String, dynamic>;
+              add(
+                _InternalEmitter(
+                  MapStateChanged.fromMap(data),
+                ),
+              );
+            } catch (e, st) {
+              mapStateListenerLogger.shout(
+                '''
+Error in Parsing Message as JSON Object in MapStateListener: Channel Reservation by Package
+The system has encountered an error while attempting to parse the message in MapStateListener as a JSON object. To prevent further errors, it is advised that you refrain from sending any messages to this channel. This channel has been reserved by the package itself and should not be used for external communication.
+
+If you require a channel for passing messages, we recommend using the PublicListener instead. Please note that when passing messages, it is important to ensure that they conform to the expected format and data type requirements.
+
+In the event that you did not send any message to this channel and are still experiencing issues, we encourage you to open an issue with our support team. Our team will work diligently to resolve the issue and ensure that your system is functioning properly.
+''',
+                e,
+                st,
+              );
+            }
+          },
+        );
+      },
+    );
+    await controller.addJavaScriptChannel(
+      'PublicListener',
+      onMessageReceived: (JavaScriptMessage message) {
+        publicLogger.info('Received:\n${message.message}');
+        try {
+          final data = jsonDecode(message.message) as Map<String, dynamic>;
+          add(
+            _InternalEmitter(
+              RawEventState(
+                event: data,
+              ),
+            ),
+          );
+        } catch (e, st) {
+          publicLogger.shout(
+            '''
+Error in Parsing Message as JSON Object in PublicListener: Invalid Data Type
+The system has encountered an error while attempting to parse the message in PublicListener as a JSON object. It is recommended that you pass stringified JSON objects and not arrays or strings, as these data types are not acceptable by the listener.
+
+To prevent further errors, please ensure that the data type being passed conforms to the expected format. Passing invalid data types may result in errors and hinder the proper functioning of the system.''',
+            e,
+            st,
+          );
+        }
+      },
+    );
+  }
+
   String get _pageCode => '''<!DOCTYPE html>
 <html>
 
