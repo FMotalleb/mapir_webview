@@ -111,10 +111,9 @@ Page resource error:
         while (isMapInitialized == false && event.shouldRunAfterMapInited) {
           await Future.delayed(const Duration(milliseconds: 150));
         }
-        // if (isMapInitialized == false && event.shouldRunAfterMap) {
-        //   logger.shout('map is not initialized yet so it cannot inject js');
-        //   return;
-        // }
+        if (isMapInitialized == false) {
+          logger.shout('map is not initialized yet so you should not inject any code that works with map');
+        }
         if (_controller == null) {
           logger.shout('controller is not initialized yet');
           return;
