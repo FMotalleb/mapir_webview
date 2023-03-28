@@ -27,6 +27,8 @@ class MapTapEvent extends MapEvent {
 }
 
 abstract class IInjectableJsEvent extends MapEvent {
+  bool get shouldRunAfterMapInited => true;
+
   String get rawJs;
 }
 

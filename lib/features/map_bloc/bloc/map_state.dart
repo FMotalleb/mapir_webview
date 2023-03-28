@@ -4,7 +4,7 @@ abstract class MapState extends Equatable {
   const MapState();
 }
 
-class MapBlocInitial extends MapState {
+class MapBlocInitialState extends MapState {
   @override
   List<Object> get props => [];
 }
@@ -29,6 +29,12 @@ class RawEventState extends MapState {
 
   @override
   List<Object?> get props => [event];
+}
+
+class MapInitializedState extends RawEventState {
+  const MapInitializedState({
+    required super.event,
+  });
 }
 
 class MapTapState extends RawEventState {

@@ -16,6 +16,7 @@ part 'map_state.dart';
 class MapBloc extends Bloc<MapEvent, MapState> {
   WebViewController? _controller;
   final Logger _logger;
+  bool isMapInitialized = false;
   Logger _createLoggerFor(MapEvent event) {
     return Logger('${_logger.fullName}.${event.runtimeType}');
   }
@@ -35,7 +36,7 @@ class MapBloc extends Bloc<MapEvent, MapState> {
     required Uri baseMapUri,
     String loggerName = 'Global.MapBloc',
   })  : _logger = Logger(loggerName),
-        super(MapBlocInitial()) {
+        super(MapBlocInitialState()) {
     on<RequestMapControllerEvent>((event, emit) async {
       final logger = _createLoggerFor(event);
       if (_controller != null) {
@@ -107,7 +108,13 @@ Page resource error:
     on<IInjectableJsEvent>(
       (event, emit) async {
         final logger = _createLoggerFor(event);
-
+        while (isMapInitialized == false && event.shouldRunAfterMapInited) {
+          await Future.delayed(const Duration(milliseconds: 150));
+        }
+        // if (isMapInitialized == false && event.shouldRunAfterMap) {
+        //   logger.shout('map is not initialized yet so it cannot inject js');
+        //   return;
+        // }
         if (_controller == null) {
           logger.shout('controller is not initialized yet');
           return;
@@ -157,6 +164,37 @@ The system has encountered an error while attempting to parse the message in Tap
 If you require a channel for passing messages, we recommend using the PublicListener instead. Please note that when passing messages, it is important to ensure that they conform to the expected format and data type requirements.
 
 In the event that you did not send any message to this channel and are still experiencing issues, we encourage you to open an issue with our support team. Our team will work diligently to resolve the issue and ensure that your system is functioning properly.
+''',
+            e,
+            st,
+          );
+        }
+      },
+    );
+
+    await controller.addJavaScriptChannel(
+      'MapInitializerListener',
+      onMessageReceived: (JavaScriptMessage message) {
+        final logger = _extendLogger(
+          _logger,
+          'Channel.MapInitializerListener',
+        );
+        logger.info('Received:\n${message.message}');
+        logger.info('map initialized');
+        controller.removeJavaScriptChannel('MapInitializerListener');
+        isMapInitialized = true;
+        try {
+          final data = jsonDecode(message.message) as Map<String, dynamic>;
+          add(
+            _InternalEmitter(
+              MapInitializedState(event: data),
+            ),
+          );
+        } catch (e, st) {
+          tapListenerLogger.shout(
+//TODO DOCS
+            '''
+Map Initializer error
 ''',
             e,
             st,
@@ -366,6 +404,9 @@ To prevent further errors, please ensure that the data type being passed conform
               JSON.stringify(result)
           );
       })
+      MapInitializerListener.postMessage(
+              JSON.stringify({state:'initialized'})
+          );
   }
 );''';
 }
