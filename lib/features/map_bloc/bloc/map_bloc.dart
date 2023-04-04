@@ -82,15 +82,15 @@ Page resource error:
         ),
       );
       await _createChannels(controller);
-
+      final page = _pageCode(
+        initialPoint: initialPoint,
+        initialZoom: initialZoom,
+        mapIrToken: mapIrToken,
+        style: await _cssPart(styles),
+        js: await _jsPart(scripts),
+      );
       await controller.loadHtmlString(
-        _pageCode(
-          initialPoint: initialPoint,
-          initialZoom: initialZoom,
-          mapIrToken: mapIrToken,
-          style: await _cssPart(styles),
-          js: await _jsPart(scripts),
-        ),
+        page,
         baseUrl: baseMapUri.toString(),
       );
       logger.fine('loading html page at `${DateTime.now()}`');

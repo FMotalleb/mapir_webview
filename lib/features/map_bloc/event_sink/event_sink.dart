@@ -1,29 +1,43 @@
-import 'package:mapir_webview/mapir_webview.dart';
+part of '../widgets/mapir_webview.dart';
 
-class MapEventDriver implements Sink<MapEvent> {
-  MapBloc? _map;
-  set map(MapBloc value) {
-    if (_map == null) {
-      _map = value;
+class MapDriver extends Stream<MapState> implements Sink<MapEvent> {
+  MapBloc? _mapInstance;
+  final _stateController = StreamController<MapState>();
+  MapDriver();
+  set _map(MapBloc value) {
+    if (_mapInstance == null) {
+      _mapInstance = value;
     } else {
       throw Exception('this map controller is already attached to an instance');
     }
   }
 
-  MapEventDriver();
+  void _stateChanged(MapState state) => _stateController.sink.add(state);
+
+  void _addError(Object error, StackTrace trace) => _stateController.sink.addError(error, trace);
 
   @override
   void add(MapEvent data) {
-    if (_map == null) {
+    if (_mapInstance == null) {
       throw Exception('tried to send event before initializing the map bloc');
-    } else if (_map!.isClosed) {
+    } else if (_mapInstance!.isClosed) {
       throw Exception('tried to send event after closing the map bloc');
     }
-    _map!.add(data);
+    _mapInstance!.add(data);
   }
 
   @override
   void close() {
-    _map!.close();
+    _mapInstance!.close();
   }
+
+  @override
+  StreamSubscription<MapState> listen(void Function(MapState event)? onData,
+          {Function? onError, void Function()? onDone, bool? cancelOnError}) =>
+      _stateController.stream.listen(
+        onData,
+        onError: onError,
+        cancelOnError: cancelOnError,
+        onDone: onDone,
+      );
 }

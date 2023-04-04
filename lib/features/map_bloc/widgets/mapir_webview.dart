@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:latlong2/latlong.dart';
@@ -5,7 +7,7 @@ import 'package:webview_flutter/webview_flutter.dart';
 
 import 'package:mapir_webview/features/debouncer/debouncer.dart';
 import 'package:mapir_webview/features/map_bloc/bloc/map_bloc.dart';
-import 'package:mapir_webview/features/map_bloc/event_sink/event_sink.dart';
+part '../event_sink/event_sink.dart';
 
 class MapIrWebView extends StatelessWidget {
   const MapIrWebView({
@@ -25,7 +27,7 @@ class MapIrWebView extends StatelessWidget {
   final LatLng? initialLocation;
   final double initialZoomLevel;
   final String loggerName;
-  final MapEventDriver controller;
+  final MapDriver controller;
   final Uri? baseMapUri;
 
   final List<String>? styles;
@@ -46,13 +48,14 @@ class MapIrWebView extends StatelessWidget {
           styles: styles,
         );
         bloc.add(RequestMapControllerEvent());
-        controller.map = bloc;
+        controller._map = bloc;
         return bloc;
       },
       child: _MapView(
         key: key,
         placeholder: placeholder,
         stateListener: stateListener,
+        controller: controller,
       ),
     );
   }
@@ -63,8 +66,10 @@ class _MapView extends StatefulWidget {
     super.key,
     required this.stateListener,
     required this.placeholder,
+    required this.controller,
   });
 
+  final MapDriver controller;
   final void Function(BuildContext context, MapState state)? stateListener;
   final Widget Function(BuildContext context)? placeholder;
   @override
@@ -76,7 +81,10 @@ class _MapViewState extends State<_MapView> {
   @override
   Widget build(BuildContext context) {
     return BlocConsumer<MapBloc, MapState>(
-      listener: widget.stateListener ?? (_, __) {},
+      listener: (context, state) {
+        widget.controller._stateChanged(state);
+        widget.stateListener?.call(context, state);
+      },
       buildWhen: (previous, current) => current is MapBlocCreatedMapController,
       builder: (context, state) {
         if (state is! MapBlocCreatedMapController) {
