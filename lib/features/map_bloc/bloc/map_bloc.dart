@@ -366,6 +366,7 @@ To prevent further errors, please ensure that the data type being passed conform
   }) =>
       '''\$(document).ready(
   function () {
+      window.markersObject = {};
       window.map = new Mapp(
           {
               element: '#app',

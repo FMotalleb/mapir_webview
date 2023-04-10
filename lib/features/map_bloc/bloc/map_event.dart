@@ -66,40 +66,55 @@ class CreateMarkerOnMapEvent extends IInjectableJsEvent {
   final Offset iconAnchor;
   final bool draggable;
   final bool moveToMarker;
-  //TODO rotation?
+  final double rotation;
   //TODO popup control
+  //TODO Dragable control
   CreateMarkerOnMapEvent({
     required this.name,
     required this.iconUrl,
     this.moveToMarker = false,
     required this.location,
     this.iconSize = const Size(20, 20),
+    this.rotation = 0,
     Offset? iconAnchor,
     this.draggable = false,
   }) : iconAnchor = iconAnchor ?? Offset(iconSize.width / 2, iconSize.height);
 
   @override
   String get rawJs => '''
-var icon = {
-  iconUrl:    '$iconUrl',
-  iconSize:   [${iconSize.width}, ${iconSize.height}], 
-  iconAnchor: [${iconAnchor.dx}, ${iconAnchor.dy}], 
-};
+  var icon = L.icon({
+    iconUrl:    '$iconUrl',
+    iconSize:   [${iconSize.width}, ${iconSize.height}], 
+    iconAnchor: [${iconAnchor.dx}, ${iconAnchor.dy}]
+  });
+  window.markersObject["$name"] = new L.marker( {
+       lat: ${location.latitude},
+       lng: ${location.longitude},
+   }, 
+    {
+      icon: icon, 
+      clickable:false,
+      rotationAngle: $rotation,
+      pan: $moveToMarker,
+      draggable: $draggable,
+    }
+  );
+  window.markersObject["$name"].addTo(window.map.map);
+  // window.map.addMarker({
+  //   name: '$name',
+  //   latlng: {
+  //       lat: ${location.latitude},
+  //       lng: ${location.longitude},
+  //   },
 
-window.map.addMarker({
-  name: '$name',
-  latlng: {
-      lat: ${location.latitude},
-      lng: ${location.longitude},
-  },
-
-  icon: icon,
-  popup: false,
-  clickable:false,
-  pan: $moveToMarker,
-  draggable: $draggable,
-  history: true,
-});''';
+  //   icon: icon,
+  //   popup: false,
+  //   clickable:false,
+  //   pan: $moveToMarker,
+  //   draggable: $draggable,
+  //   history: true,
+  // });
+  ''';
   @override
   List<Object?> get props => [
         name,
