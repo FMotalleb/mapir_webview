@@ -27,7 +27,7 @@ class MapTapEvent extends MapEvent {
 }
 
 abstract class IInjectableJsEvent extends MapEvent {
-  bool get shouldRunAfterMapInited => true;
+  bool get shouldRunAfterMapInitialized => true;
 
   String get rawJs;
 }
@@ -82,6 +82,10 @@ class CreateMarkerOnMapEvent extends IInjectableJsEvent {
 
   @override
   String get rawJs => '''
+  if(window.markersObject["$name"]){
+    window.map.map.removeLayer(window.markersObject["$name"]);
+    window.markersObject["$name"]=null;
+  }
   var icon = L.icon({
     iconUrl:    '$iconUrl',
     iconSize:   [${iconSize.width}, ${iconSize.height}], 
@@ -133,9 +137,8 @@ class RemoveMarkerEvent extends IInjectableJsEvent {
 
   @override
   String get rawJs => '''
-window.map.removeMarker({
-  name: '$name',
-});
+window.map.map.removeLayer(window.markersObject["$name"]);
+window.markersObject["$name"]=null;
 ''';
   @override
   List<Object?> get props => [name];
@@ -146,9 +149,9 @@ class ClearMarkersEvent extends IInjectableJsEvent {
 
   @override
   String get rawJs => '''
-window.map.removeMarkers({
-  group: window.map.groups.features.markers,
-});
+for(let i in window.markersObject){
+  window.map.map.removeLayer(i);
+}
 ''';
   @override
   List<Object?> get props => [];
