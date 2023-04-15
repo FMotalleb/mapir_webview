@@ -65,14 +65,12 @@ class CreateMarkerOnMapEvent extends IInjectableJsEvent {
   final Size iconSize;
   final Offset iconAnchor;
   final bool draggable;
-  final bool moveToMarker;
   final double rotation;
-  //TODO popup control
-  //TODO Dragable control
+  //TODO -Maybe popup control
+  //TODO -Maybe Dragable control
   CreateMarkerOnMapEvent({
     required this.name,
     required this.iconUrl,
-    this.moveToMarker = false,
     required this.location,
     this.iconSize = const Size(20, 20),
     this.rotation = 0,
@@ -99,7 +97,7 @@ class CreateMarkerOnMapEvent extends IInjectableJsEvent {
       icon: icon, 
       clickable:false,
       rotationAngle: $rotation,
-      pan: $moveToMarker,
+  //    pan: \$moveToMarker,
       draggable: $draggable,
     }
   );
@@ -114,7 +112,7 @@ class CreateMarkerOnMapEvent extends IInjectableJsEvent {
   //   icon: icon,
   //   popup: false,
   //   clickable:false,
-  //   pan: $moveToMarker,
+  //   pan: \$moveToMarker,
   //   draggable: $draggable,
   //   history: true,
   // });
@@ -152,6 +150,7 @@ class ClearMarkersEvent extends IInjectableJsEvent {
 for(let i in window.markersObject){
   window.map.map.removeLayer(i);
 }
+window.markersObject={};
 ''';
   @override
   List<Object?> get props => [];

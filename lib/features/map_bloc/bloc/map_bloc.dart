@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mapir_webview/features/debouncer/debouncer.dart';
 import 'package:mapir_webview/features/map_bloc/data/model/latlng_boundary.dart';
@@ -325,8 +324,8 @@ To prevent further errors, please ensure that the data type being passed conform
     <link rel="stylesheet" href="https://cdn.map.ir/web-sdk/1.4.2/css/fa/style.css">''';
     }
     final js = StringBuffer();
-    for (final key in assetSource) {
-      final asset = await _readAsset(key);
+    for (final asset in assetSource) {
+      // final asset = await _readAsset(key);
       js.writeAll([
         '<style>',
         asset,
@@ -344,8 +343,8 @@ To prevent further errors, please ensure that the data type being passed conform
 ''';
     }
     final js = StringBuffer();
-    for (final key in assetSource) {
-      final asset = await _readAsset(key);
+    for (final asset in assetSource) {
+      // final asset = await _readAsset(key);
       js.writeAll([
         '<script>',
         asset,
@@ -355,9 +354,9 @@ To prevent further errors, please ensure that the data type being passed conform
     return js.toString();
   }
 
-  Future<String> _readAsset(String assetKey) {
-    return rootBundle.loadString(assetKey, cache: false);
-  }
+  // Future<String> _readAsset(String assetKey) {
+  //   return rootBundle.loadString(assetKey, cache: false);
+  // }
 
   String _initializerScript({
     required LatLng initialPoint,
@@ -365,7 +364,7 @@ To prevent further errors, please ensure that the data type being passed conform
     required String mapIrToken,
   }) =>
       '''
-  function () {
+  \$(document).ready(function () {
       $_rotateScript
       window.markersObject = {};
       window.map = new Mapp(
